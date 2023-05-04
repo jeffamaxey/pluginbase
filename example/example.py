@@ -30,8 +30,8 @@ class Application(object):
         # is optional but by doing this out plugins have consistent
         # internal module names which allows pickle to work.
         self.source = plugin_base.make_plugin_source(
-            searchpath=[get_path('./%s/plugins' % name)],
-            identifier=self.name)
+            searchpath=[get_path(f'./{name}/plugins')], identifier=self.name
+        )
 
         # Here we list all the plugins the source knows about, load them
         # and the use the "setup" function provided by the plugin to
@@ -47,8 +47,8 @@ class Application(object):
 
 def run_demo(app, source):
     """Shows all formatters in demo mode of an application."""
-    print('Formatters for %s:' % app.name)
-    print('       input: %s' % source)
+    print(f'Formatters for {app.name}:')
+    print(f'       input: {source}')
     for name, fmt in sorted(app.formatters.items()):
         print('  %10s: %s' % (name, fmt(source)))
     print('')
@@ -72,7 +72,7 @@ def main():
     # importing plugins regularly:
     with app1.source:
         from example.plugins import secret
-        print('Plugin module: %s' % secret)
+        print(f'Plugin module: {secret}')
 
 
 if __name__ == '__main__':

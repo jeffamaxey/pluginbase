@@ -9,6 +9,7 @@
     :copyright: (c) Copyright 2014 by Armin Ronacher.
     :license: BSD, see LICENSE for more details.
 """
+
 import os
 import sys
 import uuid
@@ -35,7 +36,7 @@ else:
 __version__ = '1.0.1'
 _local = threading.local()
 
-_internalspace = ModuleType(__name__ + '._internalspace')
+_internalspace = ModuleType(f'{__name__}._internalspace')
 _internalspace.__path__ = []
 sys.modules[_internalspace.__name__] = _internalspace
 
@@ -112,8 +113,9 @@ def _discover_space(name, globals):
         return globals['__pluginbase_state__'].source
 
     mod_name = globals.get('__name__')
-    if mod_name is not None and \
-       mod_name.startswith(_internalspace.__name__ + '.'):
+    if mod_name is not None and mod_name.startswith(
+        f'{_internalspace.__name__}.'
+    ):
         end = mod_name.find('.', len(_internalspace.__name__) + 1)
         space = sys.modules.get(mod_name[:end])
         if space is not None:
@@ -130,9 +132,7 @@ def _shutdown_module(mod):
 
 
 def _to_bytes(s):
-    if isinstance(s, text_type):
-        return s.encode('utf-8')
-    return s
+    return s.encode('utf-8') if isinstance(s, text_type) else s
 
 
 class _IntentionallyEmptyModule(ModuleType):
@@ -153,7 +153,7 @@ class _IntentionallyEmptyModule(ModuleType):
 class _PluginSourceModule(ModuleType):
 
     def __init__(self, source):
-        modname = '%s.%s' % (_internalspace.__name__, source.spaceid)
+        modname = f'{_internalspace.__name__}.{source.spaceid}'
         ModuleType.__init__(self, modname)
         self.__pluginbase_state__ = PluginBaseState(source)
 
@@ -259,10 +259,7 @@ class PluginSource(object):
         self.searchpath = searchpath
         #: The internal module name of the plugin source as it appears
         #: in the :mod:`pluginsource._internalspace`.
-        self.spaceid = '_sp' + hashlib.md5(
-            _to_bytes(self.base.package) + b'|' +
-            _to_bytes(identifier),
-        ).hexdigest()
+        self.spaceid = f"_sp{hashlib.md5(_to_bytes(self.base.package) + b'|' + _to_bytes(identifier)).hexdigest()}"
         #: a reference to the module on the internal
         #: :mod:`pluginsource._internalspace`.
         self.mod = _PluginSourceModule(self)
@@ -282,9 +279,7 @@ class PluginSource(object):
         that are available and is usually used together with
         :meth:`load_plugin`.
         """
-        rv = []
-        for _, modname, ispkg in pkgutil.iter_modules(self.mod.__path__):
-            rv.append(modname)
+        rv = [modname for _, modname, ispkg in pkgutil.iter_modules(self.mod.__path__)]
         return sorted(rv)
 
     def load_plugin(self, name):
@@ -298,8 +293,7 @@ class PluginSource(object):
         if '.' in name:
             raise ImportError('Plugin names cannot contain dots.')
         with self:
-            return __import__(self.base.package + '.' + name,
-                              globals(), {}, ['__name__'])
+            return __import__(f'{self.base.package}.{name}', globals(), {}, ['__name__'])
 
     def open_resource(self, plugin, filename):
         """This function locates a resource inside the plugin and returns
@@ -320,7 +314,7 @@ class PluginSource(object):
                 fn = fn[:-1]
             if os.path.isfile(fn):
                 return open(os.path.join(os.path.dirname(fn), filename), 'rb')
-        buf = pkgutil.get_data(self.mod.__name__ + '.' + plugin, filename)
+        buf = pkgutil.get_data(f'{self.mod.__name__}.{plugin}', filename)
         if buf is None:
             raise IOError(errno.ENOENT, 'Could not find resource')
         return NativeBytesIO(buf)
@@ -345,7 +339,7 @@ class PluginSource(object):
             delattr(_internalspace, self.spaceid)
         except AttributeError:
             pass
-        prefix = modname + '.'
+        prefix = f'{modname}.'
         # avoid the bug described in issue #6
         if modname in _sys.modules:
             del _sys.modules[modname]
@@ -376,20 +370,18 @@ class PluginSource(object):
         self.__assert_not_cleaned_up()
         if modname == self.base.package:
             return self.mod.__name__
-        elif modname.startswith(self.base.package + '.'):
+        elif modname.startswith(f'{self.base.package}.'):
             pieces = modname.split('.')
-            return self.mod.__name__ + '.' + '.'.join(
-                pieces[self.base.package.count('.') + 1:])
+            return f'{self.mod.__name__}.' + '.'.join(
+                pieces[self.base.package.count('.') + 1 :]
+            )
 
 
 class PluginBaseState(object):
     __slots__ = ('_source',)
 
     def __init__(self, source):
-        if source.persist:
-            self._source = lambda: source
-        else:
-            self._source = weakref(source)
+        self._source = (lambda: source) if source.persist else weakref(source)
 
     @property
     def source(self):
@@ -443,7 +435,7 @@ try:
     import __builtin__ as builtins
 except ImportError:
     import builtins
-import_hook = _ImportHook(__name__ + '.import_hook', builtins.__import__)
+import_hook = _ImportHook(f'{__name__}.import_hook', builtins.__import__)
 builtins.__import__ = import_hook.plugin_import
 sys.modules[import_hook.__name__] = import_hook
 del builtins

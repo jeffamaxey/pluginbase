@@ -10,7 +10,7 @@ def test_basic_plugin(source, dummy_internal_name):
         from dummy.plugins import hello
 
     # Which because of a stable identifier has a predictable name.
-    assert hello.__name__ == dummy_internal_name + '.hello'
+    assert hello.__name__ == f'{dummy_internal_name}.hello'
 
     # And can continue to import from itself.
     assert hello.import_self() is hello

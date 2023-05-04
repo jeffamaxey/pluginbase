@@ -22,7 +22,7 @@ with open(os.path.join(base_directory, 'pluginbase.py')) as file_h:
     match = re.search(r'^__version__\s*=\s*([\'"])(?P<version>\d+(\.\d)*)\1$', file_h.read(), flags=re.MULTILINE)
 if match is None:
     raise RuntimeError('Unable to find the version information')
-version = match.group('version')
+version = match['version']
 
 DESCRIPTION = """\
 PluginBase is a module for Python that enables the development of flexible \
